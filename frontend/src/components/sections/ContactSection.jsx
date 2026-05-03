@@ -89,11 +89,17 @@ export default function ContactSection() {
         <div className="space-y-4">
           {/* Map placeholder */}
           <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
-            <div className="h-60 bg-white/[0.04] flex flex-col items-center justify-center gap-2 border-b border-white/[0.08]">
-              <MapPin className="w-10 h-10 text-white/20" />
-              <span className="text-[13px] text-white/30">
-                Interactive Map · {CONTACT.address[1]}
-              </span>
+            <div className="h-60 border-b border-white/[0.08]">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14674.153920677114!2d88.27137357457782!3d23.15061614742512!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39f8f26b5c3e7bdf%3A0x64cf27e4e13e8b0b!2sPandua%2C%20West%20Bengal%20712146!5e0!3m2!1sen!2sin!4v1704200000000!5m2!1sen!2sin"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Google Maps Location - Pandua, West Bengal"
+              ></iframe>
             </div>
             <div className="grid grid-cols-2 gap-5 p-6">
               {Object.values(CONTACT.map).map((item, i) => (
