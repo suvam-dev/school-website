@@ -1,14 +1,40 @@
-import { useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { GALLERY } from '@/data/schoolData';
+import { supabase } from '@/lib/supabase';
 
 export default function CarouselSection() {
+  const [carouselItems, setCarouselItems] = useState(GALLERY);
+
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: 'start' },
     [Autoplay({ delay: 5000, stopOnInteraction: true })]
   );
+
+  const fetchCarouselImages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('carousel_images')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setCarouselItems(data);
+      } else {
+        setCarouselItems(GALLERY);
+      }
+    } catch (err) {
+      console.warn('Could not fetch carousel images, falling back to static GALLERY:', err);
+      setCarouselItems(GALLERY);
+    }
+  };
+
+  useEffect(() => {
+    fetchCarouselImages();
+  }, []);
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();
@@ -57,7 +83,7 @@ export default function CarouselSection() {
 
         <div className="embla overflow-hidden" ref={emblaRef}>
           <div className="embla__container flex touch-pan-y -ml-4 md:-ml-8">
-            {GALLERY.map((item, index) => (
+            {carouselItems.map((item, index) => (
               <div
                 className="embla__slide flex-[0_0_90%] sm:flex-[0_0_80%] lg:flex-[0_0_65%] min-w-0 pl-4 md:pl-8"
                 key={index}
@@ -75,9 +101,11 @@ export default function CarouselSection() {
                     <h3 className="text-white font-heading text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4 drop-shadow-md">
                       {item.alt}
                     </h3>
-                    <p className="text-white/85 text-sm md:text-base lg:text-lg max-w-xl leading-relaxed drop-shadow">
-                      {item.caption}
-                    </p>
+                    {item.caption && (
+                      <p className="text-white/85 text-sm md:text-base lg:text-lg max-w-xl leading-relaxed drop-shadow">
+                        {item.caption}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

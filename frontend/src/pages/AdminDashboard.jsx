@@ -33,6 +33,16 @@ export default function AdminDashboard() {
   const [eventImageUrl, setEventImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Carousel Management State
+  const [carouselImages, setCarouselImages] = useState([]);
+  const [loadingCarousel, setLoadingCarousel] = useState(false);
+  const [editingCarouselId, setEditingCarouselId] = useState(null);
+  const [carouselAlt, setCarouselAlt] = useState('');
+  const [carouselCaption, setCarouselCaption] = useState('');
+  const [carouselImageUrl, setCarouselImageUrl] = useState('');
+  const [carouselImageFile, setCarouselImageFile] = useState(null);
+  const [uploadingCarouselImage, setUploadingCarouselImage] = useState(false);
+
   // Authentication check
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -367,11 +377,156 @@ export default function AdminDashboard() {
     }
   };
 
+  // ─────────────────────────────────────────────
+  // CAROUSEL CRUD
+  // ─────────────────────────────────────────────
+  const fetchCarousel = async () => {
+    setLoadingCarousel(true);
+    setActionError('');
+    try {
+      const { data, error } = await supabase
+        .from('carousel_images')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setCarouselImages(data || []);
+    } catch (err) {
+      console.warn('Supabase fetch carousel failed:', err);
+      setActionError('Note: Could not fetch carousel from database.');
+    } finally {
+      setLoadingCarousel(false);
+    }
+  };
+
+  const handleCarouselFileUpload = async (file) => {
+    if (!file) return null;
+    setUploadingCarouselImage(true);
+    setActionError('');
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('carousel')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('carousel')
+        .getPublicUrl(filePath);
+
+      setCarouselImageUrl(publicUrl);
+      return publicUrl;
+    } catch (err) {
+      console.error('Error uploading image to carousel storage:', err);
+      setActionError('Carousel image upload failed.');
+      return null;
+    } finally {
+      setUploadingCarouselImage(false);
+    }
+  };
+
+  const handleCarouselSubmit = async (e) => {
+    e.preventDefault();
+    if (!carouselAlt) return;
+    setActionError('');
+
+    let finalImageUrl = carouselImageUrl;
+
+    if (carouselImageFile) {
+      const uploadedUrl = await handleCarouselFileUpload(carouselImageFile);
+      if (uploadedUrl) {
+        finalImageUrl = uploadedUrl;
+      }
+    }
+
+    if (!finalImageUrl) {
+      setActionError('Please provide an image file or direct URL.');
+      return;
+    }
+
+    try {
+      if (editingCarouselId) {
+        const { error } = await supabase
+          .from('carousel_images')
+          .update({
+            alt: carouselAlt,
+            caption: carouselCaption,
+            src: finalImageUrl,
+          })
+          .eq('id', editingCarouselId);
+
+        if (error) throw error;
+        setCarouselAlt('');
+        setCarouselCaption('');
+        setCarouselImageUrl('');
+        setCarouselImageFile(null);
+        setEditingCarouselId(null);
+        fetchCarousel();
+      } else {
+        const { error } = await supabase
+          .from('carousel_images')
+          .insert([{
+            alt: carouselAlt,
+            caption: carouselCaption,
+            src: finalImageUrl,
+          }]);
+
+        if (error) throw error;
+        setCarouselAlt('');
+        setCarouselCaption('');
+        setCarouselImageUrl('');
+        setCarouselImageFile(null);
+        fetchCarousel();
+      }
+    } catch (err) {
+      console.warn('Supabase carousel save failed:', err);
+      setActionError('Could not save carousel image.');
+    }
+  };
+
+  const handleEditCarousel = (item) => {
+    setEditingCarouselId(item.id);
+    setCarouselAlt(item.alt);
+    setCarouselCaption(item.caption || '');
+    setCarouselImageUrl(item.src);
+  };
+
+  const cancelEditCarousel = () => {
+    setEditingCarouselId(null);
+    setCarouselAlt('');
+    setCarouselCaption('');
+    setCarouselImageUrl('');
+    setCarouselImageFile(null);
+  };
+
+  const handleDeleteCarousel = async (id) => {
+    if (!confirm('Are you sure you want to delete this image?')) return;
+    setActionError('');
+
+    try {
+      const { error } = await supabase
+        .from('carousel_images')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchCarousel();
+    } catch (err) {
+      console.warn('Supabase delete carousel failed:', err);
+      setActionError('Deleted failed.');
+    }
+  };
+
   // Initial load
   useEffect(() => {
     if (token) {
       fetchNotifications();
       fetchEvents();
+      fetchCarousel();
     }
   }, [token]);
 
@@ -483,7 +638,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tabs Switcher */}
-      <div className="max-w-6xl mx-auto flex gap-3 mb-10 bg-neutral-900/40 p-1.5 rounded-2xl border border-neutral-800/60 w-fit">
+      <div className="max-w-6xl mx-auto flex gap-3 mb-10 bg-neutral-900/40 p-1.5 rounded-2xl border border-neutral-800/60 w-fit overflow-x-auto flex-wrap">
         <button
           onClick={() => { setActiveTab('notifications'); setActionError(''); }}
           className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer ${
@@ -503,6 +658,16 @@ export default function AdminDashboard() {
           }`}
         >
           <Calendar className="w-4 h-4" /> Events Calendar
+        </button>
+        <button
+          onClick={() => { setActiveTab('carousel'); setActionError(''); }}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer ${
+            activeTab === 'carousel' 
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/10' 
+              : 'text-neutral-400 hover:text-neutral-200'
+          }`}
+        >
+          <ImageIcon className="w-4 h-4" /> Home Carousels
         </button>
       </div>
 
@@ -640,7 +805,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-        ) : (
+        ) : activeTab === 'events' ? (
 
           /* EVENTS SECTION */
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -840,6 +1005,172 @@ export default function AdminDashboard() {
                         </button>
                         <button
                           onClick={() => handleDeleteEvent(ev.id)}
+                          className="flex items-center justify-center gap-1.5 text-xs bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/40 font-bold px-3.5 py-2 rounded-xl transition cursor-pointer"
+                        >
+                          <Trash2 className="w-3 h-3" /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+        ) : (
+
+          /* CAROUSEL IMAGES SECTION */
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            {/* Form Column */}
+            <div className="bg-white/[0.02] backdrop-blur-md border border-neutral-800 rounded-2xl p-6 md:p-8 h-fit shadow-lg flex flex-col gap-5">
+              <div>
+                <h2 className="text-xl font-bold text-white leading-snug">
+                  {editingCarouselId ? 'Edit Carousel Slide' : 'Add New Carousel Slide'}
+                </h2>
+                <p className="text-xs text-neutral-400 mt-1">
+                  Carousel slides appear directly in the Discover section on the homepage.
+                </p>
+              </div>
+
+              <form onSubmit={handleCarouselSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wide mb-2">Alternative / Alt Text (Label)</label>
+                  <input
+                    type="text"
+                    value={carouselAlt}
+                    onChange={(e) => setCarouselAlt(e.target.value)}
+                    placeholder="e.g. Modern Classrooms"
+                    className="w-full bg-neutral-950/60 border border-neutral-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-white transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wide mb-2">Description / Caption</label>
+                  <input
+                    type="text"
+                    value={carouselCaption}
+                    onChange={(e) => setCarouselCaption(e.target.value)}
+                    placeholder="e.g. Our modern school campus block"
+                    className="w-full bg-neutral-950/60 border border-neutral-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wide mb-2">Direct Image URL</label>
+                  <input
+                    type="text"
+                    value={carouselImageUrl}
+                    onChange={(e) => setCarouselImageUrl(e.target.value)}
+                    placeholder="e.g. https://images.unsplash.com/..."
+                    className="w-full bg-neutral-950/60 border border-neutral-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wide mb-2">Or Upload Slide Image</label>
+                  <div className="flex items-center gap-3 bg-neutral-950/60 border border-neutral-800 rounded-xl px-4 py-3 text-sm text-neutral-400">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setCarouselImageFile(e.target.files[0])}
+                      className="hidden"
+                      id="upload-carousel-file"
+                    />
+                    <label htmlFor="upload-carousel-file" className="cursor-pointer flex items-center gap-2 hover:text-emerald-400 transition">
+                      <Upload className="w-4 h-4 text-emerald-400" />
+                      <span>{carouselImageFile ? carouselImageFile.name : 'Choose file...'}</span>
+                    </label>
+                  </div>
+                </div>
+
+                {carouselImageUrl && (
+                  <div className="relative mt-2 p-1.5 bg-neutral-950 border border-neutral-800 rounded-xl">
+                    <p className="text-[10px] uppercase font-bold text-neutral-500 mb-1 tracking-wider">Image Preview</p>
+                    <img src={carouselImageUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg border border-neutral-800" />
+                  </div>
+                )}
+
+                {actionError && (
+                  <div className="text-emerald-300 bg-emerald-950/40 border border-emerald-800/40 rounded-xl px-4 py-3 text-xs font-medium tracking-wide leading-normal">
+                    {actionError}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={uploadingCarouselImage}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl shadow transition cursor-pointer text-xs flex items-center justify-center gap-1.5"
+                  >
+                    {uploadingCarouselImage ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                    <span>{editingCarouselId ? 'Save Slide' : 'Add Slide'}</span>
+                  </button>
+                  {editingCarouselId && (
+                    <button
+                      type="button"
+                      onClick={cancelEditCarousel}
+                      className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold py-3 px-4 rounded-xl border border-neutral-700 transition cursor-pointer text-xs"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {/* List Column */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">Active Home Carousels</h2>
+                  <p className="text-xs text-neutral-400 mt-0.5">Manage existing homepage Discover sliders</p>
+                </div>
+                <button
+                  onClick={fetchCarousel}
+                  className="text-xs bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-bold px-3 py-2 rounded-xl transition border border-neutral-800 cursor-pointer flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                </button>
+              </div>
+
+              {loadingCarousel ? (
+                <div className="text-center py-12 bg-white/[0.01] border border-neutral-900 rounded-2xl flex flex-col items-center">
+                  <div className="w-6 h-6 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-3" />
+                  <p className="text-xs text-neutral-400 font-medium">Loading carousels...</p>
+                </div>
+              ) : carouselImages.length === 0 ? (
+                <div className="text-center py-12 bg-white/[0.01] border border-neutral-900 rounded-2xl">
+                  <p className="text-base font-semibold text-neutral-300">No custom carousels added</p>
+                  <p className="text-xs text-neutral-500 mt-1">Default static gallery images are currently used on the home page.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {carouselImages.map((img) => (
+                    <div
+                      key={img.id}
+                      className="bg-white/[0.02] backdrop-blur-sm border border-neutral-800/80 hover:border-neutral-700 rounded-2xl p-5 md:p-6 transition flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm"
+                    >
+                      <div className="flex items-center gap-4">
+                        {img.src && (
+                          <img src={img.src} alt={img.alt} className="w-16 h-16 object-cover rounded-xl border border-neutral-800 shrink-0" />
+                        )}
+
+                        <div>
+                          <h3 className="text-lg font-bold text-white tracking-tight">{img.alt}</h3>
+                          <p className="text-xs text-neutral-400 mt-0.5">{img.caption}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex md:flex-col gap-2 shrink-0 self-end md:self-center">
+                        <button
+                          onClick={() => handleEditCarousel(img)}
+                          className="flex items-center justify-center gap-1.5 text-xs bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/40 font-bold px-3.5 py-2 rounded-xl transition cursor-pointer"
+                        >
+                          <Edit2 className="w-3 h-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCarousel(img.id)}
                           className="flex items-center justify-center gap-1.5 text-xs bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/40 font-bold px-3.5 py-2 rounded-xl transition cursor-pointer"
                         >
                           <Trash2 className="w-3 h-3" /> Delete
