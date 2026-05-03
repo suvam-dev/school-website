@@ -9,6 +9,7 @@ import FacilitiesSection from '@/components/sections/FacilitiesSection';
 import FacultySection from '@/components/sections/FacultySection';
 import HeroSection from '@/components/sections/HeroSection';
 import TestimonialsSection from '@/components/sections/TestimonialsSection';
+import PrincipalMessageSection from '@/components/sections/PrincipalMessageSection';
 import { SCHOOL } from '@/data/schoolData';
 
 const schoolName = SCHOOL.name.trim();
@@ -19,6 +20,7 @@ export const PAGE_DEFINITIONS = [
     sections: [
       HeroSection,
       CarouselSection,
+      PrincipalMessageSection,
       AboutSection,
       AcademicsSection,
       TestimonialsSection,
@@ -26,7 +28,7 @@ export const PAGE_DEFINITIONS = [
   },
   {
     path: 'about',
-    sections: [AboutSection, FacultySection, TestimonialsSection],
+    sections: [PrincipalMessageSection, AboutSection, FacultySection, TestimonialsSection],
   },
   {
     path: 'academics',

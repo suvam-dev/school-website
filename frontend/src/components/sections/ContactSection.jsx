@@ -22,6 +22,7 @@ export default function ContactSection() {
   const [sent, setSent] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [subject, setSubject] = useState('General');
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
@@ -31,12 +32,13 @@ export default function ContactSection() {
     try {
       const { error } = await supabase
         .from('inquiries')
-        .insert([{ name, phone, message }]);
+        .insert([{ name, phone, subject, message }]);
 
       if (!error) {
         setSent(true);
         setName('');
         setPhone('');
+        setSubject('General');
         setMessage('');
         setTimeout(() => setSent(false), 3000);
       }
@@ -44,7 +46,6 @@ export default function ContactSection() {
       console.error('Failed to submit message to the backend.', err);
     }
   };
-
 
   return (
     <section className="py-20 lg:py-24 px-[5%] lg:px-[7%] bg-indigo-deep">
@@ -130,6 +131,22 @@ export default function ContactSection() {
                   />
                 </div>
               </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[12px] tracking-wider uppercase text-white/45">Direct Your Message To</label>
+                <select
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="w-full bg-white/[0.07] border border-white/15 text-white/80 rounded-lg h-10 px-3 text-sm focus:outline-none focus:border-gold-light transition duration-200"
+                  required
+                >
+                  <option value="General" className="bg-indigo-deep text-white">General Information</option>
+                  <option value="Admissions" className="bg-indigo-deep text-white">Admissions & Enrolment</option>
+                  <option value="Academics" className="bg-indigo-deep text-white">Academics & Curriculum</option>
+                  <option value="Direct to Principal" className="bg-indigo-deep text-white">Direct to Principal</option>
+                </select>
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-[12px] tracking-wider uppercase text-white/45">Message</label>
                 <Input 
@@ -140,7 +157,7 @@ export default function ContactSection() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full bg-gold hover:bg-gold-light text-indigo-deep font-semibold">
+              <Button type="submit" className="w-full bg-gold hover:bg-gold-light text-indigo-deep font-bold">
                 {sent ? '✓ Message Sent!' : 'Send Message →'}
               </Button>
             </form>
