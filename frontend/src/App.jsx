@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import PageRenderer from '@/pages/PageRenderer';
+import AdminDashboard from '@/pages/AdminDashboard';
 import { PAGE_DEFINITIONS } from '@/pages/pageDefinitions';
 
 /** Scroll to top on route change */
@@ -17,6 +18,8 @@ export default function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
+        <Route path="/admin" element={<AdminDashboard />} />
+        
         <Route element={<Layout />}>
           {PAGE_DEFINITIONS.map(({ hero, index, path, sections }) => (
             <Route
@@ -31,3 +34,6 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
+
+

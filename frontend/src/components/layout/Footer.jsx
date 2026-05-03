@@ -59,8 +59,15 @@ export default function Footer() {
               {link.label}
             </Link>
           ))}
+          <Link
+            to="/admin"
+            className="text-xs text-white/35 font-medium no-underline hover:text-emerald-400 transition-colors"
+          >
+            Admin Portal
+          </Link>
         </div>
       </div>
     </footer>
   );
 }
+

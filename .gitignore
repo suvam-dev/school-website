@@ -24,3 +24,11 @@ dist-ssr
 *.sw?
 .vercel
 .env*.local
+
+# AI/Agent directories and files
+.agents/
+skills/
+skills-lock.json
+.mcp.json
+
+

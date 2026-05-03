@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import SectionIntro from '@/components/common/SectionIntro';
 import { CONTACT } from '@/data/schoolData';
+import { supabase } from '@/lib/supabase';
 
 const Facebook = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>;
 const Instagram = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line></svg>;
@@ -19,11 +20,31 @@ const SOCIAL_ICONS = {
 
 export default function ContactSection() {
   const [sent, setSent] = useState(false);
-  const handleSubmit = (e) => {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSent(true);
-    setTimeout(() => setSent(false), 3000);
+    if (!name || !phone || !message) return;
+
+    try {
+      const { error } = await supabase
+        .from('inquiries')
+        .insert([{ name, phone, message }]);
+
+      if (!error) {
+        setSent(true);
+        setName('');
+        setPhone('');
+        setMessage('');
+        setTimeout(() => setSent(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to submit message to the backend.', err);
+    }
   };
+
 
   return (
     <section className="py-20 lg:py-24 px-[5%] lg:px-[7%] bg-indigo-deep">
@@ -90,16 +111,34 @@ export default function ContactSection() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="space-y-1.5">
                   <label className="text-[12px] tracking-wider uppercase text-white/45">Name</label>
-                  <Input placeholder="Your name" className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" />
+                  <Input 
+                    placeholder="Your name" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" 
+                    required
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[12px] tracking-wider uppercase text-white/45">Phone</label>
-                  <Input placeholder="+91 XXXXX" className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" />
+                  <Input 
+                    placeholder="+91 XXXXX" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" 
+                    required
+                  />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[12px] tracking-wider uppercase text-white/45">Message</label>
-                <Input placeholder="How can we help you?" className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" />
+                <Input 
+                  placeholder="How can we help you?" 
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" 
+                  required
+                />
               </div>
               <Button type="submit" className="w-full bg-gold hover:bg-gold-light text-indigo-deep font-semibold">
                 {sent ? '✓ Message Sent!' : 'Send Message →'}
