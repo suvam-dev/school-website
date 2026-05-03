@@ -150,6 +150,7 @@ export default function ContactSection() {
                   <option value="Admissions" className="bg-indigo-deep text-white">Admissions & Enrolment</option>
                   <option value="Academics" className="bg-indigo-deep text-white">Academics & Curriculum</option>
                   <option value="Direct to Principal" className="bg-indigo-deep text-white">Direct to Principal</option>
+                  <option value="Parents Complaint / Grievance" className="bg-indigo-deep text-white">Parents Complaint / Grievance</option>
                 </select>
               </div>
 

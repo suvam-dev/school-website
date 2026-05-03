@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Link } from 'react-router-dom';
-import { Bell, Calendar, LogOut, ArrowLeft, Plus, Edit2, Trash2, CheckCircle, RefreshCw, Upload, Image as ImageIcon } from 'lucide-react';
+import { Bell, Calendar, LogOut, ArrowLeft, Plus, Edit2, Trash2, CheckCircle, RefreshCw, Upload, Image as ImageIcon, MessageSquare, AlertOctagon } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [token, setToken] = useState(localStorage.getItem('adminToken') || '');
@@ -42,6 +42,11 @@ export default function AdminDashboard() {
   const [carouselImageUrl, setCarouselImageUrl] = useState('');
   const [carouselImageFile, setCarouselImageFile] = useState(null);
   const [uploadingCarouselImage, setUploadingCarouselImage] = useState(false);
+
+  // Parent/Admissions Inquiries Management State
+  const [inquiries, setInquiries] = useState([]);
+  const [loadingInquiries, setLoadingInquiries] = useState(false);
+  const [filterSubject, setFilterSubject] = useState('All');
 
   // Authentication check
   const handleLogin = async (e) => {
@@ -330,7 +335,7 @@ export default function AdminDashboard() {
       setEventTag('');
       setEventImageUrl('');
       setEventImageFile(null);
-      setActionError('Saved locally! (Ensure the events table/storage exists in your Supabase to save permanently)');
+      setActionError('Saved locally!');
     }
   };
 
@@ -521,14 +526,60 @@ export default function AdminDashboard() {
     }
   };
 
+  // ─────────────────────────────────────────────
+  // INQUIRIES & COMPLAINTS CRUD
+  // ─────────────────────────────────────────────
+  const fetchInquiries = async () => {
+    setLoadingInquiries(true);
+    setActionError('');
+    try {
+      const { data, error } = await supabase
+        .from('inquiries')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setInquiries(data || []);
+    } catch (err) {
+      console.warn('Supabase fetch inquiries failed:', err);
+      setActionError('Note: Could not load inquiries.');
+    } finally {
+      setLoadingInquiries(false);
+    }
+  };
+
+  const handleDeleteInquiry = async (id) => {
+    if (!confirm('Are you sure you want to delete this inquiry?')) return;
+    setActionError('');
+
+    try {
+      const { error } = await supabase
+        .from('inquiries')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchInquiries();
+    } catch (err) {
+      console.warn('Supabase delete inquiry failed:', err);
+      setActionError('Delete failed.');
+    }
+  };
+
   // Initial load
   useEffect(() => {
     if (token) {
       fetchNotifications();
       fetchEvents();
       fetchCarousel();
+      fetchInquiries();
     }
   }, [token]);
+
+  // Filtered inquiries calculation
+  const filteredInquiries = inquiries.filter(inq => 
+    filterSubject === 'All' ? true : (inq.subject === filterSubject)
+  );
 
   // ─────────────────────────────────────────────
   // LOGIN SCREEN
@@ -550,7 +601,7 @@ export default function AdminDashboard() {
             <span className="text-xs font-bold text-emerald-400 tracking-widest uppercase mb-1">Administrator Portal</span>
             <h1 className="text-3xl font-extrabold text-white tracking-tight">Admin Sign In</h1>
             <p className="text-xs text-neutral-400 mt-1 max-w-xs leading-relaxed">
-              Log in with admin credentials to manage the notices and events.
+              Log in with admin credentials to manage your entire school dashboard.
             </p>
           </div>
 
@@ -617,7 +668,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <span className="text-xs font-bold tracking-wider uppercase text-emerald-400">Website Control</span>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white mt-0.5 tracking-tight">Events Page Manager</h1>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-white mt-0.5 tracking-tight">School Admin Workbench</h1>
           </div>
         </div>
         
@@ -668,6 +719,16 @@ export default function AdminDashboard() {
           }`}
         >
           <ImageIcon className="w-4 h-4" /> Home Carousels
+        </button>
+        <button
+          onClick={() => { setActiveTab('inquiries'); setActionError(''); }}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer ${
+            activeTab === 'inquiries' 
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/10' 
+              : 'text-neutral-400 hover:text-neutral-200'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4" /> Inquiries & Complaints
         </button>
       </div>
 
@@ -1017,7 +1078,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-        ) : (
+        ) : activeTab === 'carousel' ? (
 
           /* CAROUSEL IMAGES SECTION */
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -1181,6 +1242,96 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
+          </div>
+
+        ) : (
+
+          /* INQUIRIES & COMPLAINTS SECTION */
+          <div className="w-full">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">Parent Inquiries & Grievances</h2>
+                <p className="text-xs text-neutral-400 mt-0.5">Read or clear parent submissions from the website contact form.</p>
+              </div>
+
+              {/* Subject Category Filter buttons */}
+              <div className="flex flex-wrap gap-2 bg-neutral-900/50 p-1 rounded-xl border border-neutral-800/40 shrink-0">
+                {['All', 'General', 'Admissions', 'Academics', 'Direct to Principal', 'Parents Complaint / Grievance'].map(subj => (
+                  <button
+                    key={subj}
+                    onClick={() => setFilterSubject(subj)}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      filterSubject === subj 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+                    }`}
+                  >
+                    {subj === 'Parents Complaint / Grievance' ? 'Complaints' : subj}
+                  </button>
+                ))}
+                <button
+                  onClick={fetchInquiries}
+                  className="px-3 py-1.5 rounded-lg text-xs bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {loadingInquiries ? (
+              <div className="text-center py-12 bg-white/[0.01] border border-neutral-900 rounded-2xl flex flex-col items-center">
+                <div className="w-6 h-6 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-3" />
+                <p className="text-xs text-neutral-400 font-medium">Loading inquiries...</p>
+              </div>
+            ) : filteredInquiries.length === 0 ? (
+              <div className="text-center py-12 bg-white/[0.01] border border-neutral-900 rounded-2xl">
+                <p className="text-base font-semibold text-neutral-300">No inquiries found for {filterSubject}</p>
+                <p className="text-xs text-neutral-500 mt-1">Inquiries sent via the website's contact form will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredInquiries.map((inq) => (
+                  <div
+                    key={inq.id}
+                    className="bg-white/[0.02] backdrop-blur-sm border border-neutral-800/80 hover:border-neutral-700 rounded-2xl p-5 md:p-6 transition flex flex-col md:flex-row md:items-start justify-between gap-6 shadow-sm"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-sm font-bold text-white tracking-tight">{inq.name}</span>
+                        {inq.created_at && (
+                          <span className="text-[10px] font-bold text-neutral-400 bg-neutral-900 border border-neutral-800 px-2 py-0.5 rounded-full uppercase">
+                            {new Date(inq.created_at).toLocaleDateString()}
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                          inq.subject === 'Parents Complaint / Grievance'
+                            ? 'bg-red-950/40 text-red-400 border-red-800/30'
+                            : inq.subject === 'Direct to Principal'
+                            ? 'bg-amber-950/40 text-amber-400 border-amber-800/30'
+                            : inq.subject === 'Admissions'
+                            ? 'bg-blue-950/40 text-blue-400 border-blue-800/30'
+                            : 'bg-emerald-950/40 text-emerald-400 border-emerald-800/30'
+                        }`}>
+                          {inq.subject || 'General'}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <p className="text-xs text-neutral-400 font-medium">Phone: <span className="text-white font-semibold">{inq.phone}</span></p>
+                        <p className="text-sm text-neutral-300 leading-relaxed max-w-3xl mt-1.5">{inq.message}</p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleDeleteInquiry(inq.id)}
+                      className="flex items-center justify-center gap-1.5 text-xs bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800/40 font-bold px-3.5 py-2 rounded-xl transition cursor-pointer self-end md:self-start shrink-0"
+                    >
+                      <Trash2 className="w-3 h-3" /> Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
