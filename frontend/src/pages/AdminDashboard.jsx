@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Link } from 'react-router-dom';
-import { Bell, Calendar, LogOut, ArrowLeft, Plus, Edit2, Trash2, CheckCircle, RefreshCw, Upload, Image as ImageIcon, MessageSquare, AlertOctagon } from 'lucide-react';
+import { Bell, Calendar, LogOut, ArrowLeft, Plus, Edit2, Trash2, CheckCircle, RefreshCw, Upload, Image as ImageIcon, MessageSquare, AlertOctagon, Sun, Moon } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [token, setToken] = useState(localStorage.getItem('adminToken') || '');
@@ -10,6 +10,8 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
   const [activeTab, setActiveTab] = useState('notifications');
+  const [isLightMode, setIsLightMode] = useState(() => localStorage.getItem('adminTheme') === 'light');
+
   
   // Notification Management State
   const [notifications, setNotifications] = useState([]);
@@ -657,8 +659,16 @@ export default function AdminDashboard() {
   // ─────────────────────────────────────────────
   // DASHBOARD WORKBENCH
   // ─────────────────────────────────────────────
+  const toggleTheme = () => {
+    setIsLightMode(prev => {
+      const nextTheme = !prev;
+      localStorage.setItem('adminTheme', nextTheme ? 'light' : 'dark');
+      return nextTheme;
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-6 md:p-12">
+    <div className={`min-h-screen transition-colors duration-500 ${isLightMode ? 'admin-light bg-slate-50 text-slate-900' : 'bg-neutral-950 text-neutral-100'} p-6 md:p-12`}>
       
       {/* Top Header Section */}
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 pb-6 border-b border-neutral-800">
@@ -672,7 +682,14 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
+          <button
+            onClick={toggleTheme}
+            className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 font-semibold p-3 rounded-xl transition cursor-pointer flex items-center justify-center"
+            title="Toggle Light/Dark Mode"
+          >
+            {isLightMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+          </button>
           <Link 
             to="/" 
             className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 font-semibold text-xs px-4 py-3 rounded-xl transition cursor-pointer no-underline flex items-center gap-2"
