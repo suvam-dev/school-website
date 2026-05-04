@@ -10,6 +10,9 @@ import FacultySection from '@/components/sections/FacultySection';
 import HeroSection from '@/components/sections/HeroSection';
 import TestimonialsSection from '@/components/sections/TestimonialsSection';
 import PrincipalMessageSection from '@/components/sections/PrincipalMessageSection';
+import DownloadsSection from '@/components/sections/DownloadsSection';
+import AchievementsSection from '@/components/sections/AchievementsSection';
+import FaqSection from '@/components/sections/FaqSection';
 import { SCHOOL } from '@/data/schoolData';
 
 const schoolName = SCHOOL.name.trim();
@@ -23,20 +26,21 @@ export const PAGE_DEFINITIONS = [
       PrincipalMessageSection,
       AboutSection,
       AcademicsSection,
+      AchievementsSection,
       TestimonialsSection,
     ],
   },
   {
     path: 'about',
-    sections: [PrincipalMessageSection, AboutSection, FacultySection, TestimonialsSection],
+    sections: [PrincipalMessageSection, AboutSection, FacultySection, AchievementsSection, TestimonialsSection],
   },
   {
     path: 'academics',
-    sections: [AcademicsSection, FacilitiesSection],
+    sections: [AcademicsSection, FacilitiesSection, DownloadsSection],
   },
   {
     path: 'admissions',
-    sections: [AdmissionsSection],
+    sections: [AdmissionsSection, FaqSection],
   },
   {
     path: 'campus',
@@ -45,7 +49,7 @@ export const PAGE_DEFINITIONS = [
       subtitle: `Explore the vibrant life and world-class facilities at ${schoolName} — where tradition meets modern excellence.`,
       image: '/images/campus_hero.png',
     },
-    sections: [CampusSection, FacilitiesSection],
+    sections: [CampusSection, FacilitiesSection, AchievementsSection],
   },
   {
     path: 'events',
@@ -53,6 +57,6 @@ export const PAGE_DEFINITIONS = [
   },
   {
     path: 'contact',
-    sections: [ContactSection],
+    sections: [FaqSection, ContactSection],
   },
 ];
