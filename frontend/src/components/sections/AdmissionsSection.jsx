@@ -4,14 +4,56 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SectionIntro from '@/components/common/SectionIntro';
 import { ADMISSIONS } from '@/data/schoolData';
+import { supabase } from '@/lib/supabase';
 
 export default function AdmissionsSection() {
   const [submitted, setSubmitted] = useState(false);
+  const [parentName, setParentName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [studentName, setStudentName] = useState('');
+  const [admissionClass, setAdmissionClass] = useState('');
+  const [community, setCommunity] = useState('');
+  const [message, setMessage] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    if (!parentName || !phone) return;
+
+    const fullMessage = `
+Student: ${studentName || 'Not specified'}
+Class: ${admissionClass || 'Not specified'}
+Community: ${community || 'Not specified'}
+Email: ${email || 'Not specified'}
+
+Additional Message:
+${message || 'None'}
+    `.trim();
+
+    try {
+      const { error } = await supabase
+        .from('inquiries')
+        .insert([{ 
+          name: parentName, 
+          phone: phone, 
+          subject: 'Admissions', 
+          message: fullMessage 
+        }]);
+
+      if (!error) {
+        setSubmitted(true);
+        setParentName('');
+        setPhone('');
+        setEmail('');
+        setStudentName('');
+        setAdmissionClass('');
+        setCommunity('');
+        setMessage('');
+        setTimeout(() => setSubmitted(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to submit admission enquiry.', err);
+    }
   };
 
   return (
@@ -65,27 +107,50 @@ export default function AdmissionsSection() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[12px] tracking-wider uppercase text-white/45">Parent's Name</label>
-                <Input placeholder="Full name" className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" />
+                <Input 
+                  placeholder="Full name" 
+                  value={parentName}
+                  onChange={(e) => setParentName(e.target.value)}
+                  className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" 
+                  required
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[12px] tracking-wider uppercase text-white/45">Mobile Number</label>
-                <Input placeholder="+91 XXXXX XXXXX" className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" />
+                <Input 
+                  placeholder="+91 XXXXX XXXXX" 
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" 
+                  required
+                />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[12px] tracking-wider uppercase text-white/45">Email Address</label>
-              <Input type="email" placeholder="your@email.com" className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" />
+              <Input 
+                type="email" 
+                placeholder="your@email.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" 
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[12px] tracking-wider uppercase text-white/45">Student's Name</label>
-                <Input placeholder="Child's full name" className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" />
+                <Input 
+                  placeholder="Child's full name" 
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" 
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[12px] tracking-wider uppercase text-white/45">Seeking Admission To</label>
-                <Select>
+                <Select value={admissionClass} onValueChange={setAdmissionClass}>
                   <SelectTrigger className="bg-white/[0.07] border-white/15 text-white">
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
@@ -100,7 +165,7 @@ export default function AdmissionsSection() {
 
             <div className="space-y-1.5">
               <label className="text-[12px] tracking-wider uppercase text-white/45">Religion / Community</label>
-              <Select>
+              <Select value={community} onValueChange={setCommunity}>
                 <SelectTrigger className="bg-white/[0.07] border-white/15 text-white">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
@@ -114,7 +179,12 @@ export default function AdmissionsSection() {
 
             <div className="space-y-1.5">
               <label className="text-[12px] tracking-wider uppercase text-white/45">Message (optional)</label>
-              <Input placeholder="Any specific query or information" className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" />
+              <Input 
+                placeholder="Any specific query or information" 
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="bg-white/[0.07] border-white/15 text-white placeholder:text-white/30 focus:border-gold-light" 
+              />
             </div>
 
             <Button
